@@ -2,5 +2,98 @@
 title: "Analyzing Wind and Cheese"
 author: "Alec Rogers"
 format: html
+execute:
+    echo: false
 ---
 
+```{r}
+#| message: false
+
+library(tidyverse)
+library(readxl)
+library(dbplyr)
+```
+
+```{r}
+#| cache: true
+
+
+cheese_tibble <- read_excel("data/cheeses.xlsx") |>
+  filter(!is.na(country)) |>
+  add_count(country, name = "country_total") |>
+  filter(country_total >= sort(unique(country_total), decreasing = TRUE)[3]) |>
+  filter(!is.na(milk)) |>
+  count(country, milk) |>
+  group_by(country) |>
+  arrange(country, desc(n))
+```
+
+```{r}
+cheese_tibble|>
+    ggplot(aes(x = milk, y = n, fill = milk))+
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ country, scales = "fixed") +
+    coord_flip() +
+    scale_y_sqrt() +
+    theme_gray() +
+    labs(
+    title = "Milk Types Used in Cheeses by Country",
+    subtitle = "Italy has the most variety of cheese",
+    caption = "Source: cheese.com",
+    x = "Type of Milk",
+    y = "Number of Cheeses (sqrt scale)"
+  
+  )
+```
+
+
+```{r}
+wine_tibble <- read_excel("data/wine.xlsx")
+ 
+ wine_tibble|>
+  ggplot(aes(x = Type)) +
+  geom_bar()
+```
+
+
+```{r}
+wine_tibble |>
+  ggplot(aes(x = Malic, y = Hue, color = Color)) +
+  geom_point(size = 2, alpha = 0.5) +
+  geom_jitter() + 
+  geom_smooth(method = "loess", color = "black") +
+  scale_color_gradient(low = "green", high = "red") +
+  theme_classic()
+```
+
+```{r}
+#| cache: true
+wine_tibble <- read_excel("data/wine.xlsx") |>
+  select(Phenols, Color, Flavanoids)
+```
+
+```{r}
+
+outlier_row <- wine_tibble |>
+  slice_max(Flavanoids, n = 1)
+
+wine_tibble |>
+  ggplot(aes(x = Phenols, y = Flavanoids, color = Color)) +
+  geom_jitter(width = 0.05, height = 0.05, alpha = 0.6, size = 2) +
+  geom_smooth(method = "loess", se = FALSE, color = "black") +
+  geom_text(
+    data = outlier_row,
+    aes(label = "Outlier"),
+    color = "magenta",
+    vjust = -0.8,
+    show.legend = FALSE
+  ) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  labs(
+    title = "Phenols vs Flavanoids in Wine Samples",
+    x = "Phenols",
+    y = "Flavanoids",
+    color = "Color"
+  ) +
+  theme_classic()
+```
